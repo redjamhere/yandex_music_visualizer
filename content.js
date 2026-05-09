@@ -1,20 +1,19 @@
-// content.js (ISOLATED мир)
 (function() {
-    try {
-        const ratGifUrl = chrome.runtime.getURL("rat_dance.gif");
-        const mainWorldScriptUrl = chrome.runtime.getURL("main_world.js");
-
-        // Передаем URL гифки через атрибут, чтобы main-world.js его увидел
-        document.documentElement.setAttribute('data-rat-gif-url', ratGifUrl);
-
-        const script = document.createElement('script');
-        script.src = mainWorldScriptUrl;
+    chrome.storage.local.get(['selectedStyle'], (result) => {
+        const style = result.selectedStyle || 'anomaly'; 
+        const gifName = style === 'anime' ? "anime_dance.gif" : "rat_dance.gif";
         
-        // Важно: дожидаемся готовности документа
-        (document.head || document.documentElement).appendChild(script);
-        
-        console.log("✅ [Anomaly] Скрипт визуализатора успешно внедрен");
-    } catch (e) {
-        console.error("❌ [Anomaly] Ошибка при внедрении:", e);
-    }
+        document.documentElement.setAttribute('data-rat-gif-url', chrome.runtime.getURL(gifName));
+        document.documentElement.setAttribute('data-vis-style', style); 
+
+        // 1. Загружаем ядро
+        const core = document.createElement('script');
+        core.src = chrome.runtime.getURL('core.js');
+        document.head.appendChild(core);
+
+        // 2. Загружаем скрипт конкретного стиля
+        const styleScript = document.createElement('script');
+        styleScript.src = chrome.runtime.getURL(`styles/${style}.js`);
+        document.head.appendChild(styleScript);
+    });
 })();

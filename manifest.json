@@ -1,24 +1,23 @@
 {
   "manifest_version": 3,
   "name": "Yandex Music Anomaly Visualizer",
-  "version": "1.0.2",
-  "permissions": ["declarativeNetRequest"],
-  "host_permissions": [
-    "https://*.yandex.net/*",
-    "https://*.yandex.ru/*"
-  ],
+  "version": "1.1.0",
+  "permissions": ["declarativeNetRequest", "storage"],
+  "host_permissions": ["https://*.yandex.net/*", "https://*.yandex.ru/*"],
+  "options_ui": { "page": "options.html", "open_in_tab": false },
   "web_accessible_resources": [
     {
-      "resources": ["rat_dance.gif", "main_world.js"],
+      "resources": [
+        "rat_dance.gif", 
+        "anime_dance.gif", 
+        "core.js", 
+        "styles/*.js"
+      ],
       "matches": ["https://music.yandex.ru/*"]
     }
   ],
   "declarative_net_request": {
-    "rule_resources": [{
-      "id": "ruleset_1",
-      "enabled": true,
-      "path": "rules.json"
-    }]
+    "rule_resources": [{ "id": "ruleset_1", "enabled": true, "path": "rules.json" }]
   },
   "content_scripts": [
     {
