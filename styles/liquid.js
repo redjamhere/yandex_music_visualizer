@@ -12,7 +12,7 @@ window.CurrentVisualizerStyle = {
             
             const bx = cx + Math.cos(angle) * orbitR;
             const by = cy + Math.sin(angle) * orbitR;
-            const radius = 40 + v * 50 + intensity * 20;
+            const radius = 40 + v * 50 + intensity * 30;
             
             const hue = (i * 45 + time * 30) % 360;
             const grad = ctx.createRadialGradient(bx, by, 0, bx, by, radius);
