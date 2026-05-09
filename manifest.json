@@ -1,9 +1,18 @@
 {
   "manifest_version": 3,
-  "name": "Yandex Audio Hijacker",
-  "version": "5.0",
+  "name": "Yandex Music Anomaly Visualizer",
+  "version": "1.0.2",
   "permissions": ["declarativeNetRequest"],
-  "host_permissions": ["https://*.yandex.net/*", "https://*.yandex.ru/*"],
+  "host_permissions": [
+    "https://*.yandex.net/*",
+    "https://*.yandex.ru/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["rat_dance.gif", "main_world.js"],
+      "matches": ["https://music.yandex.ru/*"]
+    }
+  ],
   "declarative_net_request": {
     "rule_resources": [{
       "id": "ruleset_1",
@@ -15,8 +24,7 @@
     {
       "matches": ["https://music.yandex.ru/*"],
       "js": ["content.js"],
-      "run_at": "document_start",
-      "world": "MAIN"
+      "run_at": "document_start"
     }
   ]
 }
