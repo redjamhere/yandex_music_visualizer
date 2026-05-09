@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "access-control-allow-origin", "operation": "set", "value": "https://music.yandex.ru" },
+        { "header": "access-control-allow-credentials", "operation": "set", "value": "true" },
+        { "header": "timing-allow-origin", "operation": "set", "value": "*" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "yandex.net",
+      "resourceTypes": ["media", "xmlhttprequest"]
+    }
+  }
+]
