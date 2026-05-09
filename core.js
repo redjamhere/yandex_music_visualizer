@@ -7,25 +7,48 @@ window.VisualizerCore = {
     mouseX: 0,
     mouseY: 0,
     visStyle: 'anomaly',
+    ratElement: null,
     
     init() {
         this.visStyle = document.documentElement.getAttribute('data-vis-style') || 'anomaly';
         window.addEventListener('mousemove', e => { this.mouseX = e.clientX; this.mouseY = e.clientY; });
         this.hijackAudio();
+        this.observeStyleChange(); // Следим за селектором
         setInterval(() => this.initUI(), 1000);
 
         window.addEventListener('mousedown', () => { 
-            this.contexts.forEach(ctx => {
-                if (ctx.state === 'suspended') ctx.resume();
+            this.contexts.forEach(ctx => { if (ctx.state === 'suspended') ctx.resume(); });
+        });
+    },
+
+    observeStyleChange() {
+        // Следим за атрибутом, который меняет content.js
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'data-vis-style') {
+                    this.visStyle = document.documentElement.getAttribute('data-vis-style');
+                    this.updateRatState();
+                }
             });
         });
+        observer.observe(document.documentElement, { attributes: true });
+    },
+
+    updateRatState() {
+        const needsRat = (this.visStyle === 'anomaly' || this.visStyle === 'anime');
+        if (this.ratElement) {
+            if (needsRat) {
+                this.ratElement.src = document.documentElement.getAttribute('data-rat-gif-url');
+            } else {
+                this.ratElement.style.display = 'none';
+            }
+        }
     },
 
     hijackAudio() {
         const NativeCtx = window.AudioContext || window.webkitAudioContext;
         const NativeNode = window.AudioNode;
         const self = this;
-
         window.AudioContext = window.webkitAudioContext = new Proxy(NativeCtx, {
             construct(target, args) {
                 const ctx = new target(...args);
@@ -33,7 +56,6 @@ window.VisualizerCore = {
                 return ctx;
             }
         });
-
         const orgConnect = NativeNode.prototype.connect;
         NativeNode.prototype.connect = function(dest) {
             if (!self.contexts.has(this.context)) self.contexts.add(this.context);
@@ -54,29 +76,41 @@ window.VisualizerCore = {
     },
 
     initUI() {
-        if (document.getElementById('cyber-visualizer')) return;
+        if (document.getElementById('cyber-visualizer')) {
+            if (!this.ratElement && (this.visStyle === 'anomaly' || this.visStyle === 'anime')) {
+                this.createRat();
+            }
+            return;
+        }
+
         const canvas = document.createElement('canvas');
         canvas.id = 'cyber-visualizer';
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
         canvas.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1;pointer-events:none;mix-blend-mode:screen;';
         document.body.appendChild(canvas);
 
-        // Создаем гифку ТОЛЬКО для стиля anomaly
-        let rat = null;
         if (this.visStyle === 'anomaly' || this.visStyle === 'anime') {
-            rat = document.createElement('img');
-            rat.id = 'rat-dance-overlay';
-            rat.src = document.documentElement.getAttribute('data-rat-gif-url');
-            rat.style.cssText = 'position:fixed;z-index:2;width:180px;height:180px;opacity:0.8;pointer-events:none;display:none;transform:translate(-50%,-50%);';
-            document.body.appendChild(rat);
+            this.createRat();
         }
 
         const style = document.createElement('style');
-        style.innerHTML = '[class*="VibeAnimation_root"] { opacity: 0 !important; } [class*="VibeBlock_root"] { background: transparent !important; }';
+        style.innerHTML = `
+            [class*="VibeAnimation_root"] { opacity: 0 !important; } 
+            [class*="VibeBlock_root"] { background: transparent !important; }
+        `;
         document.head.appendChild(style);
 
         this.createParticles();
-        this.startLoop(canvas.getContext('2d'), rat);
+        this.startLoop(canvas.getContext('2d'));
+    },
+
+    createRat() {
+        if (this.ratElement) return;
+        this.ratElement = document.createElement('img');
+        this.ratElement.id = 'rat-dance-overlay';
+        this.ratElement.src = document.documentElement.getAttribute('data-rat-gif-url');
+        this.ratElement.style.cssText = 'position:fixed;z-index:2;width:180px;height:180px;opacity:0.8;pointer-events:none;display:none;transform:translate(-50%,-50%);';
+        document.body.appendChild(this.ratElement);
     },
 
     createParticles() {
@@ -90,15 +124,14 @@ window.VisualizerCore = {
         }
     },
 
-    startLoop(ctx, rat) {
+    startLoop(ctx) {
         let time = 0;
         const tick = () => {
             requestAnimationFrame(tick);
             time += 0.01;
             ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-
             const target = document.querySelector('[class*="VibeBlock_root"]');
-            if (!target) { if(rat) rat.style.display = 'none'; return; }
+            if (!target) { if(this.ratElement) this.ratElement.style.display = 'none'; return; }
             
             const rect = target.getBoundingClientRect();
             const cx = rect.left + rect.width / 2;
@@ -106,7 +139,6 @@ window.VisualizerCore = {
 
             let activeIntensity = 0;
             let activeData = null;
-
             this.contexts.forEach(audioCtx => {
                 if (audioCtx.state === 'closed') { this.contexts.delete(audioCtx); return; }
                 const analyser = audioCtx.__visualizer_analyser;
@@ -115,19 +147,14 @@ window.VisualizerCore = {
                     analyser.getByteFrequencyData(data);
                     let sum = 0; for (let i = 0; i < 120; i++) sum += data[i];
                     let currentIntensity = (sum / 120) / 255;
-                    if (currentIntensity > activeIntensity) {
-                        activeIntensity = currentIntensity;
-                        activeData = data;
-                    }
+                    if (currentIntensity > activeIntensity) { activeIntensity = currentIntensity; activeData = data; }
                 }
             });
-
             this.dataArray = activeData;
             const intensity = activeIntensity;
 
-            if(rat) this.handleRat(rat, intensity, cx, cy);
+            if(this.ratElement) this.handleRat(this.ratElement, intensity, cx, cy);
 
-            // Вызываем отрисовку и частиц, и стиля из конкретного модуля
             if (window.CurrentVisualizerStyle) {
                 window.CurrentVisualizerStyle.draw(ctx, cx, cy, intensity, time, this.dataArray);
                 if (window.CurrentVisualizerStyle.drawParticles) {
@@ -139,8 +166,7 @@ window.VisualizerCore = {
     },
 
     handleRat(rat, intensity, cx, cy) {
-        if (intensity > 0.01) {
-            if (rat.style.display === 'none') { const s = rat.src; rat.src = ""; rat.src = s; }
+        if (intensity > 0.01 && (this.visStyle === 'anomaly' || this.visStyle === 'anime')) {
             rat.style.display = 'block';
             rat.style.left = cx + 'px'; rat.style.top = cy + 'px';
             const size = 180 + (intensity * 80);
