@@ -130,9 +130,16 @@ window.VisualizerCore = {
             requestAnimationFrame(tick);
             time += 0.01;
             ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-            const target = document.querySelector('[class*="VibeBlock_root"]');
-            if (!target) { if(this.ratElement) this.ratElement.style.display = 'none'; return; }
-            
+            // const target = document.querySelector('[class*="VibeBlock_root"]');
+            // if (!target) { if(this.ratElement) this.ratElement.style.display = 'none'; return; }
+            const target = document.querySelector('[class*="VibeBlock_root"]') || 
+               document.querySelector('[class*="VibePage_entityMeta"]'); // Новый селектор
+
+            if (!target) { 
+                if(this.ratElement) this.ratElement.style.display = 'none'; 
+                return; 
+            }
+                        
             const rect = target.getBoundingClientRect();
             const cx = rect.left + rect.width / 2;
             const cy = rect.top + rect.height / 2;
